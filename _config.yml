@@ -1,2 +1,4 @@
 name: Matteo Peluso
 markdown: kramdown
+
+theme: jekyll-theme-midnight
