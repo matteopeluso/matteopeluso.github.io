@@ -1,5 +1,19 @@
 name: Matteo Peluso
 markdown: kramdown
+
+email:             m.peluso93@gmail.com
+description:       Programmer, Computational Chemist
+author:            Matteo Peluso
+baseurl:           "www."
+url:               "matteopeluso.com"
+
+# Social Profiles
+github_username:   matteopeluso
+facebook_username: matteopeluso
+linkedin_username: in/matteo-peluso-9550b8119
+
 theme: jekyll-theme-cayman
+
 show_downloads: True
+
 google_analytics:  UA-140227275-1 
