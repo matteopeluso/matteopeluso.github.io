@@ -4,7 +4,7 @@ markdown: kramdown
 email:             m.peluso93@gmail.com
 description:       Programmer, Computational Chemist
 author:            Matteo Peluso
-baseurl:           "www."
+baseurl:           ""
 url:               "matteopeluso.com"
 
 # Social Profiles
