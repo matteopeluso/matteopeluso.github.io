@@ -1,7 +1,5 @@
 name: Matteo Peluso
 markdown: kramdown
-
 theme: jekyll-theme-cayman
-
 show_downloads: True
 google_analytics:  UA-140227275-1 
