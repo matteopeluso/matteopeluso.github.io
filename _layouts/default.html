@@ -1,43 +1,17 @@
 <!DOCTYPE html>
-	<html>
-		<head>
-			<title>{{ page.title }}</title>
-			<!-- link to main stylesheet -->
-			<link rel="stylesheet" type="text/css" href="/css/main.css">
-			<link rel="stylesheet" href="/css/icon.css">
 
-			{% if site.google_analytics and jekyll.environment == 'production' %}
-			{% include analytics.html %}
-			{% endif %}
+<html>
 
+  {% include head.html %} 
 
-		</head>
-		<body>
-			<nav>
-	    		<ul>
-	        		<li><a href="/">Home</a></li>
-	        		<li><a href="/cv">CV</a></li>
-	    		</ul>
-			</nav>
-			<div class="container">
-			
-			{{ content }}
-			
-			</div><!-- /.container -->
-			<footer>
-	    		<ul>
-	        		<li><a href="mailto:m.peluso93@gmail.com">
-					<i class="fas fa-envelope-open"></i></a></li>
-	        		<li><a href="https://github.com/matteopeluso">
-					<i class="fab fa-github"></i></a></li>
-				<li><a href="https://linkedin.com/in/matteo-peluso-9550b8119/">
-					<i class="fa fa-linkedin" aria-hidden="true"></i></a></li>
-				<li><a href="https://instagram.com/peluso_matteo/?hl=it">
-					<i class="fa fa-instagram" aria-hidden="true"></i></a></li>
+  <body>
 
-			</ul>
-			</footer>
-		</body>
-	</html>
+    {% include navbar.html %}
 
+    {{ content }}
 
+    {% include footer.html %}
+
+  </body>
+
+</html>
