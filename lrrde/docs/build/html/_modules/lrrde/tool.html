@@ -1,0 +1,532 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lrrde.tool &mdash; lrrde 1.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lrrde
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">GETTING STARTED:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../citation.html">Citation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+</ul>
+<p class="caption"><span class="caption-text">SOURCE DOCUMENTATION:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lrrde-code.html">Python API documentation Force Field</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lrrde-fitting-code.html">Python API documentation Fitting</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lrrde</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lrrde.tool</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lrrde.tool</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="k">import</span> <span class="n">jit</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="k">as</span> <span class="nn">sns</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="k">import</span> <span class="n">mean_squared_error</span><span class="p">,</span> <span class="n">r2_score</span>
+
+<div class="viewcode-block" id="gen_vs"><a class="viewcode-back" href="../../lrrde-code.html#lrrde.tool.gen_vs">[docs]</a><span class="k">def</span> <span class="nf">gen_vs</span><span class="p">(</span><span class="n">topology</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">index_at</span><span class="p">,</span> <span class="n">n_vs</span><span class="p">,</span> <span class="n">len_vs</span> <span class="o">=</span> <span class="mf">0.075</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which takes as input a set of coordinates and for each </span>
+<span class="sd">        generate a new set with  @n_vs Virtual Site around the @index_at</span>
+<span class="sd">        atom at the distance of @len_vs</span>
+<span class="sd">        </span>
+<span class="sd">        @len_vs: length value of the VS </span>
+<span class="sd">        @n_vs:   number of virtual site to be added   </span>
+<span class="sd">        </span>
+<span class="sd">        The @n_vs coordinates are the last @n_vs of each configuration</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">new_coord</span><span class="p">,</span> <span class="n">coord_vs</span><span class="p">,</span> <span class="n">new_topol</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        
+    <span class="k">if</span> <span class="n">n_vs</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Linear geometry</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_topol</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">topology</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_vs</span><span class="p">)]))</span>   <span class="c1"># Initial Charge VS</span>
+        <span class="n">new_topol</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">topology</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_vs</span><span class="p">)</span>  <span class="p">]))</span>   <span class="c1"># Initial C6 VS1</span>
+        <span class="n">new_topol</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">topology</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_vs</span><span class="p">)</span> <span class="p">]))</span>   <span class="c1"># Initial C12 VS1</span>
+
+
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+            <span class="n">atom</span>    <span class="o">=</span> <span class="n">coord</span><span class="p">[</span><span class="n">index_at</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="c1"># First Virtual Site</span>
+            <span class="n">vs_1</span>    <span class="o">=</span> <span class="p">[</span> <span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">len_vs</span><span class="p">,</span> <span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">]</span>
+            <span class="n">vs_1</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vs_1</span><span class="p">)</span>
+            <span class="c1"># Second Virtual Site</span>
+            <span class="n">vs_2</span>    <span class="o">=</span> <span class="p">[</span> <span class="n">atom</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">len_vs</span><span class="p">,</span> <span class="n">atom</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">atom</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="n">vs_2</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vs_2</span><span class="p">)</span>
+            <span class="n">new_coord</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">coord</span><span class="p">,</span> <span class="n">vs_1</span><span class="p">,</span> <span class="n">vs_2</span><span class="p">]))</span>       
+        
+        <span class="k">return</span>   <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_topol</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">new_coord</span><span class="p">)</span>    </div>
+
+
+<div class="viewcode-block" id="standardize_data"><a class="viewcode-back" href="../../lrrde-code.html#lrrde.tool.standardize_data">[docs]</a><span class="k">def</span> <span class="nf">standardize_data</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which takes as input a data array and</span>
+<span class="sd">        returns his mean, standard deviation and</span>
+<span class="sd">        the data divided by his std</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mean</span>     <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">sigma</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">data_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span> 
+    <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">data_std</span></div>
+
+<div class="viewcode-block" id="leverage"><a class="viewcode-back" href="../../lrrde-code.html#lrrde.tool.leverage">[docs]</a><span class="k">def</span> <span class="nf">leverage</span><span class="p">(</span><span class="n">data_set</span><span class="p">,</span> <span class="n">flag</span> <span class="o">=</span> <span class="s2">&quot;novs&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Function which leverage data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># QM Data</span>
+    <span class="n">y</span>    <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">y_sample</span>
+    <span class="c1"># Weight matrix</span>
+    <span class="n">v</span>    <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">w_vector</span>  
+    <span class="n">W</span>    <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">w_matrix</span> 
+    
+    <span class="n">sigma</span><span class="p">,</span> <span class="n">H</span> <span class="o">=</span> <span class="n">sigma_h</span><span class="p">(</span><span class="n">data_set</span><span class="p">)</span>
+
+    <span class="n">n</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">y</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">V</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">v</span><span class="p">,(</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span><span class="mi">1</span><span class="p">))</span>
+    
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span><span class="n">V</span><span class="p">)</span>
+    
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+    <span class="n">Mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">H</span><span class="p">))</span>
+    <span class="n">dev</span>  <span class="o">=</span> <span class="n">H</span> <span class="o">-</span> <span class="n">Mean</span>
+    <span class="n">num</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">dev</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">den</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+    
+    <span class="n">l</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">n</span> <span class="o">+</span> <span class="n">num</span><span class="o">/</span><span class="n">den</span>
+    <span class="k">return</span> <span class="n">l</span></div>
+
+
+<div class="viewcode-block" id="eval_r2_mse"><a class="viewcode-back" href="../../lrrde-code.html#lrrde.tool.eval_r2_mse">[docs]</a><span class="k">def</span> <span class="nf">eval_r2_mse</span><span class="p">(</span><span class="n">data_set</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate the R2/MSE/MAE of the output</span>
+<span class="sd">        and compares it with the old values</span>
+<span class="sd">        </span>
+<span class="sd">         @params data_set</span>
+<span class="sd">         @params params    ---&gt; new params</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">y_ref</span>    <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">y_sample</span>
+
+    <span class="c1"># Non scaled Descriptor</span>
+    <span class="n">q</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q</span>
+    <span class="n">c6</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6</span>
+    <span class="n">c12</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12</span>
+    
+    <span class="c1"># Old Params</span>
+    <span class="n">q_old</span>       <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;old_params&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">sigma_old</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;old_params&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">epsilon_old</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;old_params&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">C12old</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="p">(</span><span class="n">epsilon_old</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sigma_old</span><span class="o">**</span><span class="mi">12</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="n">C6old</span>  <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="o">*</span><span class="p">(</span><span class="n">epsilon_old</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">sigma_old</span><span class="o">**</span><span class="mi">6</span><span class="p">))</span><span class="o">**</span><span class="mf">0.5</span>
+    
+    <span class="n">c_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">q_old</span><span class="p">,</span> <span class="n">C12old</span><span class="p">,</span> <span class="n">C6old</span><span class="p">])</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">y_test_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">c_old</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_ref</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+    <span class="n">y_test_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">y_test_old</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_functions&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]:</span>
+        <span class="n">y_c</span>        <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;q_value&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">data_set</span><span class="o">.</span><span class="n">q</span>
+        <span class="n">y_c</span>        <span class="o">=</span> <span class="n">y_c</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_test_old</span><span class="p">))</span>
+        <span class="n">y_test_old</span> <span class="o">=</span> <span class="n">y_test_old</span> <span class="o">-</span> <span class="n">y_c</span>
+    
+        
+    <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_vs&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_functions&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span> <span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxN functionts</span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_functions&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        
+    <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_vs&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+
+        <span class="c1"># VS Descriptor</span>
+        <span class="n">q_vs1</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs1</span>
+        <span class="n">c6_vs1</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs1</span>
+        <span class="n">c12_vs1</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs1</span>
+        
+        <span class="n">q_vs</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs</span>
+        <span class="n">c6_vs</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs</span>
+        <span class="n">c12_vs</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs</span>
+
+        <span class="c1"># VS Descriptor</span>
+        <span class="n">q_vs2</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs2</span>
+        <span class="n">c6_vs2</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs2</span>
+        <span class="n">c12_vs2</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs2</span>
+                
+        <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>      
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts                </span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>            
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span><span class="n">c12_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">,</span><span class="n">c12_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfuncti\onts            </span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span> <span class="n">c12_vs1</span><span class="p">,</span> <span class="n">c6_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">,</span> <span class="n">c12_vs2</span><span class="p">,</span> <span class="n">c6_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts            </span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span> <span class="n">c12_vs1</span><span class="p">,</span> <span class="n">c6_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">,</span> <span class="n">c12_vs2</span><span class="p">,</span> <span class="n">c6_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts            </span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts</span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs1</span><span class="p">,</span> <span class="n">c12_vs1</span><span class="p">,</span> <span class="n">q_vs2</span><span class="p">,</span> <span class="n">c12_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts</span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">q</span><span class="p">,</span> <span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs</span><span class="p">,</span> <span class="n">c12_vs</span><span class="p">,</span> <span class="n">c6_vs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts</span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="n">Ht</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">c12</span><span class="p">,</span> <span class="n">c6</span><span class="p">,</span> <span class="n">q_vs</span><span class="p">,</span> <span class="n">c6_vs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts</span>
+
+                    
+    <span class="c1"># Eval metrics lrr-de</span>
+    <span class="n">y_test</span>    <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">Ht</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y_ref</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+    
+    <span class="n">r2_lrrde</span>  <span class="o">=</span>  <span class="n">r2_score</span><span class="p">(</span><span class="n">y_ref</span><span class="p">,</span> <span class="n">y_test</span><span class="p">)</span>
+    <span class="n">mse_lrrde</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">y_ref</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">mae_lrrde</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y_test</span> <span class="o">-</span> <span class="n">y_ref</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;R2 score:  lrr-de&quot;</span><span class="p">,</span> <span class="n">r2_lrrde</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MSE score: lrr-de&quot;</span><span class="p">,</span> <span class="n">mse_lrrde</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MAE score: lrr-de&quot;</span><span class="p">,</span> <span class="n">mae_lrrde</span><span class="p">)</span>
+
+    <span class="c1"># Eval metrics old params</span>
+    <span class="n">r2_old</span> <span class="o">=</span>  <span class="n">r2_score</span><span class="p">(</span><span class="n">y_ref</span><span class="p">,</span> <span class="n">y_test_old</span><span class="p">)</span>
+    <span class="n">mse_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">y_test_old</span> <span class="o">-</span> <span class="n">y_ref</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">mae_old</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">y_test_old</span> <span class="o">-</span> <span class="n">y_ref</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;R2 score  old params:&quot;</span><span class="p">,</span> <span class="n">r2_old</span> <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MSE score old params:&quot;</span><span class="p">,</span> <span class="n">mse_old</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MAE score old params:&quot;</span><span class="p">,</span> <span class="n">mae_old</span><span class="p">)</span>
+    
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">dpi</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span>
+<span class="c1">#     plt.rc(&#39;text&#39;, usetex=True)</span>
+<span class="c1">#     plt.rc(&#39;font&#39;, family=&#39;serif&#39;)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s2">&quot;paper&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Sorted input -- output values&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">y_ref</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="s2">&quot;r-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;ref&quot;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span><span class="s2">&quot;b-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lrr-de&quot;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">y_test_old</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span><span class="s2">&quot;g-&quot;</span><span class="p">,</span>  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;opls&quot;</span><span class="p">)</span>
+    <span class="c1">#plt.tight_layout()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+    
+    <span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s2">&quot;paper&quot;</span><span class="p">)</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">dpi</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span>
+<span class="c1">#     plt.rc(&#39;text&#39;, usetex=True)</span>
+<span class="c1">#     plt.rc(&#39;font&#39;, family=&#39;serif&#39;)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Energy contribution&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_ref</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">],</span>  <span class="s2">&quot;r-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;ref&quot;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_test</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;b-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lrr-de&quot;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_test_old</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">],</span> <span class="s2">&quot;g-&quot;</span><span class="p">,</span>  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;opls&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>      
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;$N_</span><span class="si">{conf}</span><span class="s2">$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Energy [Kj]&quot;</span><span class="p">)</span>
+    
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s2">&quot;paper&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Force contribution&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_test_old</span><span class="p">[</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">:],</span> <span class="s2">&quot;g-&quot;</span><span class="p">,</span>  <span class="n">label</span><span class="o">=</span><span class="s2">&quot;opls&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_ref</span><span class="p">[</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">:],</span>  <span class="s2">&quot;r-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;ref&quot;</span> <span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">y_test</span><span class="p">[</span><span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_train&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">:],</span> <span class="s2">&quot;b-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;lrr-de&quot;</span> <span class="p">)</span>
+    
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;$N_</span><span class="si">{conf}</span><span class="s2">*3$&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Force [Kj/mol nm]&quot;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span> 
+        
+    <span class="k">return</span> <span class="n">r2_lrrde</span><span class="p">,</span> <span class="n">mse_lrrde</span></div>
+<div class="viewcode-block" id="sigma_h"><a class="viewcode-back" href="../../lrrde-code.html#lrrde.tool.sigma_h">[docs]</a><span class="k">def</span> <span class="nf">sigma_h</span><span class="p">(</span><span class="n">data_set</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        given a data set in input returns the H matrix and his deviation sigma</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Non scaled Descriptor</span>
+    <span class="n">q</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q</span>
+    <span class="n">c6</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6</span>
+    <span class="n">c12</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12</span>
+
+    <span class="c1"># Scaled Descriptor</span>
+    <span class="n">mean_q</span><span class="p">,</span>   <span class="n">sigma_q</span><span class="p">,</span>   <span class="n">data_std_q</span>   <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+    <span class="n">mean_c6</span><span class="p">,</span>  <span class="n">sigma_c6</span><span class="p">,</span>  <span class="n">data_std_c6</span>  <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c6</span><span class="p">)</span>
+    <span class="n">mean_c12</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">data_std_c12</span> <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c12</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_vs&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_q</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">])</span>    
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_q</span><span class="p">,</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">])</span>    
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>            
+    
+    <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">input_params</span><span class="p">[</span><span class="s1">&#39;n_vs&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="c1"># VS Descriptor</span>
+        <span class="n">q_vs1</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs1</span>
+        <span class="n">c6_vs1</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs1</span>
+        <span class="n">c12_vs1</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs1</span>
+
+        <span class="c1"># VS Descriptor</span>
+        <span class="n">q_vs2</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs2</span>
+        <span class="n">c6_vs2</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs2</span>
+        <span class="n">c12_vs2</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs2</span>
+
+        <span class="n">mean_q_vs1</span><span class="p">,</span>   <span class="n">sigma_q_vs1</span><span class="p">,</span>   <span class="n">data_std_q_vs1</span>   <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">q_vs1</span><span class="p">)</span>
+        <span class="n">mean_c6_vs1</span><span class="p">,</span>  <span class="n">sigma_c6_vs1</span><span class="p">,</span>  <span class="n">data_std_c6_vs1</span>  <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c6_vs1</span><span class="p">)</span>
+        <span class="n">mean_c12_vs1</span><span class="p">,</span> <span class="n">sigma_c12_vs1</span><span class="p">,</span> <span class="n">data_std_c12_vs1</span> <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c12_vs1</span><span class="p">)</span>
+
+        <span class="n">mean_q_vs2</span><span class="p">,</span>   <span class="n">sigma_q_vs2</span><span class="p">,</span>   <span class="n">data_std_q_vs2</span>   <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">q_vs2</span><span class="p">)</span>
+        <span class="n">mean_c6_vs2</span><span class="p">,</span>  <span class="n">sigma_c6_vs2</span><span class="p">,</span>  <span class="n">data_std_c6_vs2</span>  <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c6_vs2</span><span class="p">)</span>
+        <span class="n">mean_c12_vs2</span><span class="p">,</span> <span class="n">sigma_c12_vs2</span><span class="p">,</span> <span class="n">data_std_c12_vs2</span> <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c12_vs2</span><span class="p">)</span>
+        
+        <span class="n">q_vs</span>   <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">q_vs</span>
+        <span class="n">c6_vs</span>  <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c6_vs</span>
+        <span class="n">c12_vs</span> <span class="o">=</span> <span class="n">data_set</span><span class="o">.</span><span class="n">c12_vs</span>
+        
+        <span class="n">mean_q_vs</span><span class="p">,</span>   <span class="n">sigma_q_vs</span><span class="p">,</span>   <span class="n">data_std_q_vs</span>   <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">q_vs</span><span class="p">)</span>
+        <span class="n">mean_c6_vs</span><span class="p">,</span>  <span class="n">sigma_c6_vs</span><span class="p">,</span>  <span class="n">data_std_c6_vs</span>  <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c6_vs</span><span class="p">)</span>
+        <span class="n">mean_c12_vs</span><span class="p">,</span> <span class="n">sigma_c12_vs</span><span class="p">,</span> <span class="n">data_std_c12_vs</span> <span class="o">=</span> <span class="n">standardize_data</span><span class="p">(</span><span class="n">c12_vs</span><span class="p">)</span>
+        
+        
+        
+        
+        <span class="k">if</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs</span><span class="p">,</span> <span class="n">sigma_c6_vs</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs</span><span class="p">,</span> <span class="n">data_std_c6_vs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+            
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_q</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs</span><span class="p">,</span> <span class="n">sigma_c12_vs</span><span class="p">,</span> <span class="n">sigma_c6_vs</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_q</span><span class="p">,</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs</span><span class="p">,</span> <span class="n">data_std_c12_vs</span><span class="p">,</span> <span class="n">data_std_c6_vs</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+            
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>            
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_q</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> <span class="n">sigma_c12_vs1</span><span class="p">,</span>\
+                               <span class="n">sigma_q_vs2</span><span class="p">,</span> <span class="n">sigma_c12_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_q</span><span class="p">,</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs1</span><span class="p">,</span> <span class="n">data_std_c12_vs1</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs2</span><span class="p">,</span> <span class="n">data_std_c12_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>            
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_q</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_q</span><span class="p">,</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs1</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> 
+            
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_q</span><span class="p">,</span> <span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> <span class="n">sigma_c12_vs1</span><span class="p">,</span> <span class="n">sigma_c6_vs1</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs2</span><span class="p">,</span> <span class="n">sigma_c12_vs2</span><span class="p">,</span> <span class="n">sigma_c6_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_q</span><span class="p">,</span> <span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                                <span class="n">data_std_q_vs1</span><span class="p">,</span> <span class="n">data_std_c12_vs1</span><span class="p">,</span> <span class="n">data_std_c6_vs1</span><span class="p">,</span>\
+                                 <span class="n">data_std_q_vs2</span><span class="p">,</span> <span class="n">data_std_c12_vs2</span><span class="p">,</span> <span class="n">data_std_c6_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts    </span>
+             
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> <span class="n">sigma_c12_vs1</span><span class="p">,</span> <span class="n">sigma_c6_vs1</span><span class="p">,</span>\
+                               <span class="n">sigma_q_vs2</span><span class="p">,</span> <span class="n">sigma_c12_vs2</span><span class="p">,</span> <span class="n">sigma_c6_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs1</span><span class="p">,</span> <span class="n">data_std_c12_vs1</span><span class="p">,</span> <span class="n">data_std_c6_vs1</span><span class="p">,</span>\
+                           <span class="n">data_std_q_vs2</span><span class="p">,</span> <span class="n">data_std_c12_vs2</span><span class="p">,</span> <span class="n">data_std_c6_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>   <span class="c1"># MxNfunctionts</span>
+            
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>                       
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> <span class="n">sigma_c12_vs1</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs2</span><span class="p">,</span> <span class="n">sigma_c12_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs1</span><span class="p">,</span> <span class="n">data_std_c12_vs1</span><span class="p">,</span> \
+                           <span class="n">data_std_q_vs2</span><span class="p">,</span> <span class="n">data_std_c12_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+            
+        <span class="k">elif</span> <span class="n">data_set</span><span class="o">.</span><span class="n">nfunctions</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>            
+            <span class="n">sigma</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sigma_c12</span><span class="p">,</span> <span class="n">sigma_c6</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs1</span><span class="p">,</span> \
+                               <span class="n">sigma_q_vs2</span><span class="p">])</span>
+            
+            <span class="n">H</span>      <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">([</span><span class="n">data_std_c12</span><span class="p">,</span> <span class="n">data_std_c6</span><span class="p">,</span> \
+                                <span class="n">data_std_q_vs1</span><span class="p">,</span> \
+                                <span class="n">data_std_q_vs2</span><span class="p">])</span><span class="o">.</span><span class="n">T</span> 
+    <span class="k">return</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">H</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2019, Matteo Peluso
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
